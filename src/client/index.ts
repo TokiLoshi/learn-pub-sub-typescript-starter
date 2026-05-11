@@ -1,5 +1,14 @@
 import amqp from "amqplib";
-import { clientWelcome } from "../internal/gamelogic/gamelogic.js";
+import {
+	clientWelcome,
+	commandStatus,
+	getInput,
+	printClientHelp,
+	printQuit,
+} from "../internal/gamelogic/gamelogic.js";
+import { GameState } from "../internal/gamelogic/gamestate.js";
+import { commandMove } from "../internal/gamelogic/move.js";
+import { commandSpawn } from "../internal/gamelogic/spawn.js";
 import {
 	declareAndBind,
 	SimpleQueueType,
@@ -16,10 +25,56 @@ async function main() {
 	const [channel, queue] = await declareAndBind(
 		conn,
 		ExchangePerilDirect,
-		`pause.${userName}`,
+		`${PauseKey}.${userName}`,
 		PauseKey,
 		SimpleQueueType.Transient,
 	);
+
+	const gameState = new GameState(userName);
+	// create a repl
+	let running = true;
+	while (running) {
+		const userInput = await getInput(
+			`hi ${userName}, what would you like to do? \n`,
+		);
+		if (userInput.length === 0) continue;
+
+		const command = userInput[0];
+		if (command === "move") {
+			try {
+				commandMove(gameState, userInput);
+			} catch (error) {
+				console.error((error as Error).message);
+			}
+		} else if (command === "spawn") {
+			try {
+				commandSpawn(gameState, userInput);
+			} catch (error) {
+				console.error((error as Error).message);
+			}
+		} else if (command === "status") {
+			try {
+				commandStatus(gameState);
+			} catch (error) {
+				console.error((error as Error).message);
+			}
+		} else if (command === "help") {
+			try {
+				printClientHelp();
+			} catch (error) {
+				console.error((error as Error).message);
+			}
+		} else if (command === "spam") {
+			console.log("Spamming not allowed yet");
+		} else if (command === "quit") {
+			printQuit();
+			running = false;
+			process.exit(0);
+		} else {
+			console.log("unknown command");
+		}
+	}
+	// spawn - add new unit triggers commpandSpa
 
 	const shutdown = async () => {
 		console.log("Shutting down....");

@@ -5,6 +5,7 @@ import { ExchangePerilDirect } from "../internal/routing/routing.js";
 import { PauseKey } from "../internal/routing/routing.js";
 import { GameState } from "../internal/gamelogic/gamestate.js";
 import type { PlayingState } from "../internal/gamelogic/gamestate.js";
+import { getInput, printServerHelp } from "../internal/gamelogic/gamelogic.js";
 
 async function main() {
 	console.log("Starting Peril server...");
@@ -23,6 +24,45 @@ async function main() {
 		PauseKey,
 		playingState,
 	);
+
+	printServerHelp();
+
+	let running = true;
+
+	while (running) {
+		const userInput = await getInput("hi, what would you like to do? \n");
+		if (userInput.length === 0) continue;
+
+		const firstWord = userInput[0]?.toLocaleLowerCase().trim();
+		// if first word is pause log to console sending a pause message
+
+		if (firstWord === "pause") {
+			console.log("Pausing...");
+			playingState.isPaused = true;
+			// publish the message as before
+			await publishJSON(confirm, ExchangePerilDirect, PauseKey, playingState);
+			continue;
+		}
+
+		if (firstWord === "resume") {
+			// if it's resume log to console sending resume
+			console.log("Resuming");
+			// publish as before but set isPaused to false
+
+			playingState.isPaused = false;
+			await publishJSON(confirm, ExchangePerilDirect, PauseKey, playingState);
+			continue;
+		}
+
+		if (firstWord === "quit") {
+			console.log("quitting");
+			running = false;
+			break;
+		} else {
+			console.log("I don't understand");
+			continue;
+		}
+	}
 
 	const shutdown = async () => {
 		console.log("Shutting down...");
