@@ -37,11 +37,11 @@ export async function subscribeJSON<T>(
 					console.log("Ack");
 					break;
 				case AckType.NackDiscard:
-					channel.nack(message);
+					channel.nack(message, false, false);
 					console.log("NackDiscard");
 					break;
 				case AckType.NackRequeue:
-					channel.nack(message);
+					channel.nack(message, false, false);
 					console.log("NackRequeue");
 					break;
 				default:
