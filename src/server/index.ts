@@ -74,7 +74,7 @@ async function main() {
 		if (firstWord === "quit") {
 			console.log("quitting");
 			running = false;
-			break;
+			process.exit(0);
 		} else {
 			console.log("I don't understand");
 			continue;
