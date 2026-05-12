@@ -1,4 +1,5 @@
 import type { ConfirmChannel } from "amqplib";
+import { SimpleQueueType } from "./declareAndBind.js";
 
 export function publishJSON<T>(
 	ch: ConfirmChannel,
