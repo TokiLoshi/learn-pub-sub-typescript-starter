@@ -1,4 +1,5 @@
 import amqp from "amqplib";
+import type { ConfirmChannel } from "amqplib";
 import {
 	clientWelcome,
 	commandStatus,
@@ -14,15 +15,17 @@ import {
 	declareAndBind,
 	SimpleQueueType,
 } from "../internal/pubsub/declareAndBind.js";
-import { publishJSON } from "../internal/pubsub/publish.js";
+import { publishJSON, publishMsgPack } from "../internal/pubsub/publish.js";
 import {
 	ArmyMovesPrefix,
 	ExchangePerilDirect,
 	ExchangePerilTopic,
+	GameLogSlug,
 	PauseKey,
 	WarRecognitionsPrefix,
 } from "../internal/routing/routing.js";
 import { handlerMove, handlerPause, handlerWar } from "./handlers.js";
+import type { GameLog } from "../internal/gamelogic/logs.js";
 
 async function main() {
 	console.log("Starting Peril client...");
@@ -62,7 +65,7 @@ async function main() {
 		"war",
 		`${WarRecognitionsPrefix}.#`,
 		SimpleQueueType.Durable,
-		handlerWar(gameState),
+		handlerWar(gameState, publishCh),
 	);
 
 	// create a repl
@@ -135,3 +138,21 @@ main().catch((err) => {
 	console.error("Fatal error:", err);
 	process.exit(1);
 });
+
+export async function publishGameLog(
+	channel: ConfirmChannel,
+	username: string,
+	message: string,
+) {
+	const newGameLog: GameLog = {
+		username: username,
+		message: message,
+		currentTime: new Date(),
+	};
+	await publishMsgPack(
+		channel,
+		ExchangePerilTopic,
+		`${GameLogSlug}.${username}`,
+		newGameLog,
+	);
+}

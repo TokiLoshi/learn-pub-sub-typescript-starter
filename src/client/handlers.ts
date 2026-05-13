@@ -19,6 +19,7 @@ import {
 } from "../internal/routing/routing.js";
 import { handleWar } from "../internal/gamelogic/war.js";
 import { WarOutcome } from "../internal/gamelogic/war.js";
+import { publishGameLog } from "./index.js";
 
 export function handlerPause(gs: GameState): (ps: PlayingState) => AckType {
 	return (ps: PlayingState): AckType => {
@@ -69,28 +70,63 @@ export function handlerMove(
 
 export function handlerWar(
 	gs: GameState,
+	channel: ConfirmChannel,
 ): (war: RecognitionOfWar) => Promise<AckType> {
 	return async (war: RecognitionOfWar): Promise<AckType> => {
 		try {
 			const outcome = handleWar(gs, war);
+			const userName = gs.getUsername();
 			switch (outcome.result) {
 				case WarOutcome.NotInvolved:
 					return AckType.NackRequeue;
-				case WarOutcome.NoUnits:
+
+				case WarOutcome.NoUnits: {
 					console.log("You're out of units");
 					return AckType.NackDiscard;
-				case WarOutcome.OpponentWon:
+				}
+
+				// Lose
+				case WarOutcome.OpponentWon: {
 					console.log("You lost");
-					return AckType.Ack;
-				case WarOutcome.YouWon:
+					const lostMessage = `${outcome.winner} won a war against ${outcome.loser}`;
+					try {
+						await publishGameLog(channel, userName, lostMessage);
+						return AckType.Ack;
+					} catch {
+						console.error("Error publishing lost message");
+						return AckType.NackRequeue;
+					}
+				}
+
+				// Win
+				case WarOutcome.YouWon: {
 					console.log("You won!");
-					return AckType.Ack;
-				case WarOutcome.Draw:
+					const wonMessage = `${outcome.winner} won a war against ${outcome.loser}`;
+					try {
+						await publishGameLog(channel, userName, wonMessage);
+						return AckType.Ack;
+					} catch (error) {
+						console.error("Error publishing won message");
+						return AckType.NackRequeue;
+					}
+				}
+
+				case WarOutcome.Draw: {
+					const drawMessage = `A war between ${outcome.attacker} and ${outcome.defender} resulted in a draw`;
 					console.log("It's a tie");
-					return AckType.Ack;
-				default:
+					try {
+						await publishGameLog(channel, userName, drawMessage);
+						return AckType.Ack;
+					} catch (error) {
+						console.error("Error publishing draw  message");
+						return AckType.NackRequeue;
+					}
+				}
+
+				default: {
 					console.error("Uknown war outcome");
 					return AckType.NackDiscard;
+				}
 			}
 		} finally {
 			process.stdout.write("> ");
