@@ -44,15 +44,20 @@ export function handlerMove(
 						defender: gs.getPlayerSnap(),
 					};
 					const userName = gs.getUsername();
+					try {
+						await publishJSON(
+							publishCh,
+							ExchangePerilTopic,
+							`${WarRecognitionsPrefix}.${userName}`,
+							rw,
+						);
 
-					await publishJSON(
-						publishCh,
-						ExchangePerilTopic,
-						`${WarRecognitionsPrefix}.${userName}`,
-						rw,
-					);
+						return AckType.Ack;
+					} catch (error) {
+						console.error("Error publishing");
+						return AckType.NackRequeue;
+					}
 
-					return AckType.NackRequeue;
 				default:
 					return AckType.NackDiscard;
 			}
