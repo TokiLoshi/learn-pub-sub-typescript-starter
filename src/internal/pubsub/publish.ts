@@ -1,6 +1,8 @@
 import type { ConfirmChannel } from "amqplib";
 import { SimpleQueueType } from "./declareAndBind.js";
 import pack, { encode } from "@msgpack/msgpack";
+import type { GameLog } from "../gamelogic/logs.js";
+import { ExchangePerilTopic, GameLogSlug } from "../routing/routing.js";
 
 export function publishJSON<T>(
 	ch: ConfirmChannel,
@@ -49,4 +51,22 @@ export function publishMsgPack<T>(
 			},
 		);
 	});
+}
+
+export async function publishGameLog(
+	channel: ConfirmChannel,
+	username: string,
+	message: string,
+) {
+	const newGameLog: GameLog = {
+		username: username,
+		message: message,
+		currentTime: new Date(),
+	};
+	await publishMsgPack(
+		channel,
+		ExchangePerilTopic,
+		`${GameLogSlug}.${username}`,
+		newGameLog,
+	);
 }

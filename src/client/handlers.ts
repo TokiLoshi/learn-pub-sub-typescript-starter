@@ -20,6 +20,7 @@ import {
 import { handleWar } from "../internal/gamelogic/war.js";
 import { WarOutcome } from "../internal/gamelogic/war.js";
 import { publishGameLog } from "./index.js";
+import { writeLog } from "../internal/gamelogic/logs.js";
 
 export function handlerPause(gs: GameState): (ps: PlayingState) => AckType {
 	return (ps: PlayingState): AckType => {

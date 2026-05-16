@@ -1,6 +1,6 @@
-import amqp from "amqplib";
+import amqp, { type ConfirmChannel } from "amqplib";
 import process from "node:process";
-import { publishJSON } from "../internal/pubsub/publish.js";
+import { publishJSON, publishMsgPack } from "../internal/pubsub/publish.js";
 import {
 	ExchangePerilDirect,
 	ExchangePerilTopic,
@@ -14,6 +14,10 @@ import {
 	declareAndBind,
 	SimpleQueueType,
 } from "../internal/pubsub/declareAndBind.js";
+import { writeLog } from "../internal/gamelogic/logs.js";
+import { subscribeMsgPack } from "../internal/pubsub/consume.js";
+import { handleWrite } from "../server/handlers.js";
+import type { GameLog } from "../internal/gamelogic/logs.js";
 
 async function main() {
 	console.log("Starting Peril server...");
@@ -27,12 +31,20 @@ async function main() {
 	};
 	const confirm = await conn.createConfirmChannel();
 
-	const [gameLogChannel, gameLogQueue] = await declareAndBind(
+	// const [gameLogChannel, gameLogQueue] = await declareAndBind(
+	// 	conn,
+	// 	ExchangePerilTopic,
+	// 	GameLogSlug,
+	// 	`${GameLogSlug}.*`,
+	// 	SimpleQueueType.Durable,
+	// );
+	await subscribeMsgPack(
 		conn,
 		ExchangePerilTopic,
 		GameLogSlug,
 		`${GameLogSlug}.*`,
 		SimpleQueueType.Durable,
+		handleWrite(),
 	);
 
 	const json = await publishJSON(
